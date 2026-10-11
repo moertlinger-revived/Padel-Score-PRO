@@ -17,7 +17,7 @@
 </head>
 <body x-data="controlApp()">
 
-    <div class="version-tag">PadelScore Pro v2.8 — Control</div>
+    <div class="version-tag">PadelScore Pro v2.9 — Control</div>
 
     <!-- AVISO: ELIGE SACADOR -->
     <div class="aviso-saque" x-show="$store.match.engine.servingPlayer === null && !$store.match.engine.matchOver && !$store.match.engine.runDescanso">
@@ -55,6 +55,8 @@
                 @click="$store.match.setRule('goldenPoint', !$store.match.engine.options.goldenPoint)">
             ORO: <span x-text="$store.match.engine.options.goldenPoint ? 'SÍ' : 'NO'"></span>
         </button>
+
+        <button class="config-btn" @click="openTorneoModal()">🏆 TORNEO</button>
 
         <button class="config-btn undo-btn" @click="$store.match.undo()"
                 x-text="'↩ CORREGIR (' + $store.match.engine.history.length + ')'"></button>
@@ -146,6 +148,40 @@
         </div>
     </div>
 
+    <!-- MODAL DE TORNEO -->
+    <div x-show="torneoModalOpen" x-cloak x-transition class="modal-overlay" @click.self="torneoModalOpen = false">
+        <div class="modal-box">
+            <h3>Datos del torneo</h3>
+            <div class="modal-subtitle">Aparecerán en la parte inferior del tablero</div>
+            
+            <div style="text-align: left; margin-bottom: 10px;">
+                <div style="font-size: 10px; color: #888; margin-bottom: 5px; letter-spacing: 1px;">NOMBRE DEL TORNEO</div>
+                <input type="text"
+                       x-model="torneoNombre"
+                       x-ref="torneoInput"
+                       maxlength="40"
+                       autocomplete="off"
+                       placeholder="Ej: TORNEO APERTURA 2026">
+            </div>
+
+            <div style="text-align: left; margin-bottom: 5px;">
+                <div style="font-size: 10px; color: #888; margin-bottom: 5px; letter-spacing: 1px;">CATEGORÍA / FASE</div>
+                <input type="text"
+                       x-model="torneoCategoria"
+                       maxlength="40"
+                       autocomplete="off"
+                       placeholder="Ej: 4TA CATEGORÍA - SEMIFINAL"
+                       @keyup.enter="saveTorneo()"
+                       @keyup.escape="torneoModalOpen = false">
+            </div>
+
+            <div class="modal-actions">
+                <button @click="torneoModalOpen = false">Cancelar</button>
+                <button @click="saveTorneo()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- CARTEL DE DESCANSO -->
     <div class="cartel-descanso"
          x-show="$store.match.engine.runDescanso"
@@ -164,6 +200,10 @@
                 modalIdx: 0,
                 modalValue: '',
                 modalLabel: '',
+
+                torneoModalOpen: false,
+                torneoNombre: '',
+                torneoCategoria: '',
 
                 editName(team, idx) {
                     this.modalTeam = team;
@@ -186,6 +226,21 @@
                         : (this.modalIdx === 2 ? 0 : 1);
                     Alpine.store('match').setName(this.modalTeam, idxInArray, name);
                     this.modalOpen = false;
+                },
+
+                openTorneoModal() {
+                    this.torneoNombre = Alpine.store('match').torneo || '';
+                    this.torneoCategoria = Alpine.store('match').categoria || '';
+                    this.torneoModalOpen = true;
+                    this.$nextTick(() => {
+                        this.$refs.torneoInput.focus();
+                        this.$refs.torneoInput.select();
+                    });
+                },
+
+                saveTorneo() {
+                    Alpine.store('match').setTorneo(this.torneoNombre, this.torneoCategoria);
+                    this.torneoModalOpen = false;
                 }
             };
         }
