@@ -16,129 +16,139 @@
 </head>
 <body x-data>
 
-    <header class="board-header">
-        <div class="brand">PadelScore <span class="brand-accent">PRO</span></div>
-        <div class="header-right">
-            <div class="match-status"
-                 :class="{ 'pausado': $store.match.engine.message === 'PARTIDO PAUSADO' && !$store.match.engine.matchOver }"
-                 x-text="$store.match.engine.matchOver 
-                    ? 'PARTIDO FINALIZADO'
-                    : ($store.match.engine.runDescanso 
-                        ? $store.match.engine.motivoDescanso 
-                        : ($store.match.engine.message || 'EN JUEGO'))"></div>
-            <div class="clock-display" x-text="$store.match.currentTime"></div>
-        </div>
-    </header>
-
-    <main class="board-main">
-
-        <!-- BARRA DE TIEMPOS Y CLIMA -->
-        <div class="board-status-bar">
-            <div class="status-item" x-show="$store.match.engine.visPel">
-                <span class="status-label">CALENTAMIENTO</span>
-                <span class="status-value" x-text="$store.match.formatShortTime($store.match.engine.segPel)"></span>
-            </div>
-
-            <div class="status-item">
-                <span class="status-label">TIEMPO PARTIDO</span>
-                <span class="status-value" x-text="$store.match.formatTime($store.match.engine.segP)"></span>
-            </div>
-
-            <div class="status-item" x-show="$store.match.engine.runDescanso">
-                <span class="status-label">DESCANSO</span>
-                <span class="status-value status-danger" x-text="$store.match.engine.segDescanso + 's'"></span>
-            </div>
-
-            <div class="status-item" x-show="$store.match.weatherLoaded">
-                <span class="status-label">TEMPERATURA</span>
-                <span class="status-value" x-text="$store.match.temperature + '°C'"></span>
-            </div>
-        </div>
-
-        <div class="board-table">
-            <div class="board-row labels">
-                <div class="cell-name"></div>
-                <template x-for="i in 3">
-                    <div class="cell-set-label"
-                         :class="{ 'set-actual': $store.match.engine.currentSet === (i - 1) }"
-                         x-text="i === 3 && $store.match.engine.options.superTieBreak > 0 
-                            ? 'STB ' + $store.match.engine.options.superTieBreak 
-                            : 'SET ' + i"></div>
-                </template>
-                <div class="cell-points-label">PUNTOS</div>
-            </div>
-
-            <div class="board-row team-row" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'A' }">
-                <div class="cell-name">
-                    <template x-for="(name, idx) in $store.match.names.A" :key="idx">
-                        <div class="player-line">
-                            <span x-text="name"></span>
-                            <span class="ball"
-                                  x-show="$store.match.engine.servingPlayer === idx"></span>
-                        </div>
-                    </template>
-                </div>
-                <template x-for="i in 3">
-                    <div class="cell-set" x-text="$store.match.engine.sets[0][i - 1]"></div>
-                </template>
-                <div class="cell-points"
-                     :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
-                     x-text="$store.match.engine.getDisplayPoints().A"></div>
-            </div>
-
-            <div class="board-row team-row" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'B' }">
-                <div class="cell-name">
-                    <template x-for="(name, idx) in $store.match.names.B" :key="idx">
-                        <div class="player-line">
-                            <span x-text="name"></span>
-                            <span class="ball"
-                                  x-show="$store.match.engine.servingPlayer === (idx + 2)"></span>
-                        </div>
-                    </template>
-                </div>
-                <template x-for="i in 3">
-                    <div class="cell-set" x-text="$store.match.engine.sets[1][i - 1]"></div>
-                </template>
-                <div class="cell-points"
-                     :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
-                     x-text="$store.match.engine.getDisplayPoints().B"></div>
-            </div>
-        </div>
-
-        <div class="board-alerts">
-            <div class="alert" x-show="$store.match.engine.isGoldenPointActive()">PUNTO DE ORO</div>
-            <div class="alert alert-tb"
-                 x-show="$store.match.engine.mode === 'TIE-BREAK' 
-                    && !($store.match.engine.currentSet === 2 && $store.match.engine.options.superTieBreak > 0)">TIE-BREAK</div>
-            <div class="alert alert-stb"
-                 x-show="$store.match.engine.currentSet === 2 && $store.match.engine.options.superTieBreak > 0 && $store.match.engine.mode === 'TIE-BREAK'">
-                <span x-text="'SUPER TIE-BREAK A ' + $store.match.engine.options.superTieBreak"></span>
-            </div>
-        </div>
-    </main>
-
-    <!-- CARTEL DE DESCANSO EN TABLERO -->
-    <div class="board-aviso-descanso"
-         x-show="$store.match.engine.runDescanso && !$store.match.engine.matchOver"
-         x-transition>
-        <div class="aviso-motivo" x-text="$store.match.engine.motivoDescanso"></div>
-        <div class="aviso-reloj" x-text="$store.match.engine.segDescanso"></div>
+    <!-- MENSAJE EN PANTALLA COMPLETA -->
+    <div class="pantalla-mensaje" x-show="$store.match.pantallaOculta" x-cloak>
+        <div class="mensaje-texto" x-text="$store.match.mensajePantalla"></div>
     </div>
 
-    <div class="final-overlay" x-show="$store.match.engine.matchOver">
-        <div class="final-box">
-            <div class="final-title">PARTIDO FINALIZADO</div>
-            <div class="final-winner"
-                 x-text="$store.match.engine.winner === 'A'
-                    ? $store.match.names.A.join(' / ')
-                    : $store.match.names.B.join(' / ')"></div>
-        </div>
-    </div>
+    <!-- CONTENIDO NORMAL DEL TABLERO -->
+    <div class="tablero-contenido" x-show="!$store.match.pantallaOculta" x-cloak>
 
-    <!-- FRANJA DE TORNEO / CATEGORÍA -->
-    <div class="board-torneo" x-show="$store.match.torneo || $store.match.categoria">
-        <div class="torneo-nombre" x-show="$store.match.torneo" x-text="$store.match.torneo"></div>
-        <div class="torneo-categoria" x-show="$store.match.categoria" x-text="$store.match.categoria"></div>
+        <header class="board-header">
+            <div class="brand">PadelScore <span class="brand-accent">PRO</span></div>
+            <div class="header-right">
+                <div class="match-status"
+                     :class="{ 'pausado': $store.match.engine.message === 'PARTIDO PAUSADO' && !$store.match.engine.matchOver }"
+                     x-text="$store.match.engine.matchOver 
+                        ? 'PARTIDO FINALIZADO'
+                        : ($store.match.engine.runDescanso 
+                            ? $store.match.engine.motivoDescanso 
+                            : ($store.match.engine.message || 'EN JUEGO'))"></div>
+                <div class="clock-display" x-text="$store.match.currentTime"></div>
+            </div>
+        </header>
+
+        <main class="board-main">
+
+            <!-- BARRA DE TIEMPOS Y CLIMA -->
+            <div class="board-status-bar">
+                <div class="status-item" x-show="$store.match.engine.visPel">
+                    <span class="status-label">CALENTAMIENTO</span>
+                    <span class="status-value" x-text="$store.match.formatShortTime($store.match.engine.segPel)"></span>
+                </div>
+
+                <div class="status-item">
+                    <span class="status-label">TIEMPO PARTIDO</span>
+                    <span class="status-value" x-text="$store.match.formatTime($store.match.engine.segP)"></span>
+                </div>
+
+                <div class="status-item" x-show="$store.match.engine.runDescanso">
+                    <span class="status-label">DESCANSO</span>
+                    <span class="status-value status-danger" x-text="$store.match.engine.segDescanso + 's'"></span>
+                </div>
+
+                <div class="status-item" x-show="$store.match.weatherLoaded">
+                    <span class="status-label">TEMPERATURA</span>
+                    <span class="status-value" x-text="$store.match.temperature + '°C'"></span>
+                </div>
+            </div>
+
+            <div class="board-table">
+                <div class="board-row labels">
+                    <div class="cell-name"></div>
+                    <template x-for="i in 3">
+                        <div class="cell-set-label"
+                             :class="{ 'set-actual': $store.match.engine.currentSet === (i - 1) }"
+                             x-text="i === 3 && $store.match.engine.options.superTieBreak > 0 
+                                ? 'STB ' + $store.match.engine.options.superTieBreak 
+                                : 'SET ' + i"></div>
+                    </template>
+                    <div class="cell-points-label">PUNTOS</div>
+                </div>
+
+                <div class="board-row team-row" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'A' }">
+                    <div class="cell-name">
+                        <template x-for="(name, idx) in $store.match.names.A" :key="idx">
+                            <div class="player-line">
+                                <span x-text="name"></span>
+                                <span class="ball"
+                                      x-show="$store.match.engine.servingPlayer === idx"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <template x-for="i in 3">
+                        <div class="cell-set" x-text="$store.match.engine.sets[0][i - 1]"></div>
+                    </template>
+                    <div class="cell-points"
+                         :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
+                         x-text="$store.match.engine.getDisplayPoints().A"></div>
+                </div>
+
+                <div class="board-row team-row" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'B' }">
+                    <div class="cell-name">
+                        <template x-for="(name, idx) in $store.match.names.B" :key="idx">
+                            <div class="player-line">
+                                <span x-text="name"></span>
+                                <span class="ball"
+                                      x-show="$store.match.engine.servingPlayer === (idx + 2)"></span>
+                            </div>
+                        </template>
+                    </div>
+                    <template x-for="i in 3">
+                        <div class="cell-set" x-text="$store.match.engine.sets[1][i - 1]"></div>
+                    </template>
+                    <div class="cell-points"
+                         :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
+                         x-text="$store.match.engine.getDisplayPoints().B"></div>
+                </div>
+            </div>
+
+            <div class="board-alerts">
+                <div class="alert" x-show="$store.match.engine.isGoldenPointActive()">PUNTO DE ORO</div>
+                <div class="alert alert-tb"
+                     x-show="$store.match.engine.mode === 'TIE-BREAK' 
+                        && !($store.match.engine.currentSet === 2 && $store.match.engine.options.superTieBreak > 0)">TIE-BREAK</div>
+                <div class="alert alert-stb"
+                     x-show="$store.match.engine.currentSet === 2 && $store.match.engine.options.superTieBreak > 0 && $store.match.engine.mode === 'TIE-BREAK'">
+                    <span x-text="'SUPER TIE-BREAK A ' + $store.match.engine.options.superTieBreak"></span>
+                </div>
+            </div>
+        </main>
+
+        <!-- CARTEL DE DESCANSO EN TABLERO -->
+        <div class="board-aviso-descanso"
+             x-show="$store.match.engine.runDescanso && !$store.match.engine.matchOver"
+             x-transition>
+            <div class="aviso-motivo" x-text="$store.match.engine.motivoDescanso"></div>
+            <div class="aviso-reloj" x-text="$store.match.engine.segDescanso"></div>
+        </div>
+
+        <div class="final-overlay" x-show="$store.match.engine.matchOver">
+            <div class="final-box">
+                <div class="final-title">PARTIDO FINALIZADO</div>
+                <div class="final-winner"
+                     x-text="$store.match.engine.winner === 'A'
+                        ? $store.match.names.A.join(' / ')
+                        : $store.match.names.B.join(' / ')"></div>
+            </div>
+        </div>
+
+        <!-- FRANJA DE TORNEO / CATEGORÍA -->
+        <div class="board-torneo" x-show="$store.match.torneo || $store.match.categoria">
+            <div class="torneo-nombre" x-show="$store.match.torneo" x-text="$store.match.torneo"></div>
+            <div class="torneo-categoria" x-show="$store.match.categoria" x-text="$store.match.categoria"></div>
+        </div>
+
     </div>
 
     <!-- REGISTRO DE SERVICE WORKER (PWA) -->
