@@ -1,6 +1,7 @@
 /**
  * store.js — Puente entre el motor y la UI, y sincronización con Firebase
- * v3.0 — Con temporizadores, clima, descansos, mensaje dinámico, reloj, torneo y pantalla oculta
+ * v3.1 — Con temporizadores, clima, descansos, mensaje dinámico, reloj, torneo y pantalla oculta
+ * Fix: persist() ya no sobreescribe marcador completo (torneo y pantalla se preservan)
  */
 document.addEventListener('alpine:init', () => {
     Alpine.store('match', {
@@ -59,7 +60,9 @@ document.addEventListener('alpine:init', () => {
             if (!confirm('¿RESET TOTAL del partido?')) return;
             this.engine.reset();
             this.names = { A: ['J1A', 'J1B'], B: ['J2A', 'J2B'] };
-            db.ref('marcador').remove();
+            // Borrar SOLO el estado del partido (no toca torneo ni pantalla)
+            db.ref('marcador/state').remove();
+            db.ref('marcador/names').remove();
             this.persist();
         },
 
@@ -283,10 +286,14 @@ document.addEventListener('alpine:init', () => {
                 updatedAt: Date.now(),
             };
             localStorage.setItem('padel_v1', JSON.stringify(payload));
-            db.ref('marcador').set(payload);
+            // Escribimos SOLO en sus propios nodos, así no borramos torneo ni pantalla
+            db.ref('marcador/state').set(this.engine.getState());
+            db.ref('marcador/names').set(this.names);
+            db.ref('marcador/updatedAt').set(Date.now());
         },
 
         bindFirebase() {
+            // Cargar estado local rápido (mientras llega Firebase)
             const local = localStorage.getItem('padel_v1');
             if (local) {
                 try {
@@ -316,13 +323,24 @@ document.addEventListener('alpine:init', () => {
                 } catch (e) { /* ignore */ }
             }
 
-            db.ref('marcador').on('value', (snap) => {
-                const data = snap.val();
-                if (!data || this.syncing) return;
+            // Listener del estado del partido
+            db.ref('marcador/state').on('value', (snap) => {
+                const state = snap.val();
+                if (!state || this.syncing) return;
                 if (this.isBoard) {
                     this.syncing = true;
-                    this.engine.restore(data.state);
-                    this.names = data.names;
+                    this.engine.restore(state);
+                    this.syncing = false;
+                }
+            });
+
+            // Listener de nombres
+            db.ref('marcador/names').on('value', (snap) => {
+                const names = snap.val();
+                if (!names || this.syncing) return;
+                if (this.isBoard) {
+                    this.syncing = true;
+                    this.names = names;
                     this.syncing = false;
                 }
             });
