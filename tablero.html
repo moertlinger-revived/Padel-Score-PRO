@@ -135,6 +135,12 @@
         </div>
     </div>
 
+    <!-- FRANJA DE TORNEO / CATEGORÍA -->
+    <div class="board-torneo" x-show="$store.match.torneo || $store.match.categoria">
+        <div class="torneo-nombre" x-show="$store.match.torneo" x-text="$store.match.torneo"></div>
+        <div class="torneo-categoria" x-show="$store.match.categoria" x-text="$store.match.categoria"></div>
+    </div>
+
     <!-- REGISTRO DE SERVICE WORKER (PWA) -->
     <script>
         if ('serviceWorker' in navigator) {
