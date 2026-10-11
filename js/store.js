@@ -1,6 +1,6 @@
 /**
  * store.js — Puente entre el motor y la UI, y sincronización con Firebase
- * v2.8 — Con temporizadores, clima, descansos, mensaje dinámico, reloj e historial
+ * v2.9 — Con temporizadores, clima, descansos, mensaje dinámico, reloj y torneo
  */
 document.addEventListener('alpine:init', () => {
     Alpine.store('match', {
@@ -13,6 +13,10 @@ document.addEventListener('alpine:init', () => {
         weatherLoaded: false,
         currentTime: '',
 
+        // Torneo
+        torneo: '',
+        categoria: '',
+
         init() {
             this.isBoard = window.location.pathname.includes('tablero');
             this.bindFirebase();
@@ -23,13 +27,6 @@ document.addEventListener('alpine:init', () => {
             } else {
                 this.startTimer();
             }
-        },
-
-        /* ============================================================
-           GETTERS
-           ============================================================ */
-        get pointHistory() {
-            return this.engine.pointHistory || [];
         },
 
         /* ============================================================
@@ -95,6 +92,22 @@ document.addEventListener('alpine:init', () => {
             this.engine.aceptarDescanso();
             this.persist();
             if (navigator.vibrate) navigator.vibrate(50);
+        },
+
+        /* ============================================================
+           TORNEO
+           ============================================================ */
+        setTorneo(nombre, categoria) {
+            this.torneo = (nombre || '').toUpperCase();
+            this.categoria = (categoria || '').toUpperCase();
+            db.ref('marcador/torneo').set({
+                nombre: this.torneo,
+                categoria: this.categoria,
+            });
+            localStorage.setItem('padel_torneo', JSON.stringify({
+                nombre: this.torneo,
+                categoria: this.categoria,
+            }));
         },
 
         /* ============================================================
@@ -250,6 +263,16 @@ document.addEventListener('alpine:init', () => {
                 } catch (e) { console.warn('Estado local corrupto', e); }
             }
 
+            // Cargar torneo de localStorage mientras llega Firebase
+            const localTorneo = localStorage.getItem('padel_torneo');
+            if (localTorneo) {
+                try {
+                    const t = JSON.parse(localTorneo);
+                    this.torneo = t.nombre || '';
+                    this.categoria = t.categoria || '';
+                } catch (e) { /* ignore */ }
+            }
+
             db.ref('marcador').on('value', (snap) => {
                 const data = snap.val();
                 if (!data || this.syncing) return;
@@ -258,6 +281,24 @@ document.addEventListener('alpine:init', () => {
                     this.engine.restore(data.state);
                     this.names = data.names;
                     this.syncing = false;
+                }
+            });
+
+            // Escuchar cambios del torneo
+            db.ref('marcador/torneo').on('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    this.torneo = data.nombre || '';
+                    this.categoria = data.categoria || '';
+                } else {
+                    const local = localStorage.getItem('padel_torneo');
+                    if (local) {
+                        try {
+                            const t = JSON.parse(local);
+                            this.torneo = t.nombre || '';
+                            this.categoria = t.categoria || '';
+                        } catch (e) { /* ignore */ }
+                    }
                 }
             });
         },
