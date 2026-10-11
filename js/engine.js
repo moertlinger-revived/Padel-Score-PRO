@@ -1,6 +1,6 @@
 /**
  * PadelScoreEngine — Motor de reglas de pádel puro
- * v2.5 — Saque flexible + temporizadores + descansos + 3er set STB + historial de puntos
+ * v2.6 — Sin historial de puntos
  */
 class PadelScoreEngine {
     constructor(options = {}) {
@@ -42,7 +42,6 @@ class PadelScoreEngine {
         this.motivoDescanso = '';
 
         this.history = [];
-        this.pointHistory = [];
         this.failedAdvantages = 0;
         this.message = 'EN JUEGO';
     }
@@ -74,7 +73,6 @@ class PadelScoreEngine {
             segDescanso: this.segDescanso,
             runDescanso: this.runDescanso,
             motivoDescanso: this.motivoDescanso,
-            pointHistory: [...this.pointHistory],
         };
     }
 
@@ -106,7 +104,6 @@ class PadelScoreEngine {
         this.segDescanso = state.segDescanso ?? 0;
         this.runDescanso = state.runDescanso ?? false;
         this.motivoDescanso = state.motivoDescanso ?? '';
-        this.pointHistory = state.pointHistory ? [...state.pointHistory] : [];
     }
 
     /* ============================================================
@@ -122,12 +119,6 @@ class PadelScoreEngine {
         const eq = team === 'A' ? 0 : 1;
         const ot = eq === 0 ? 1 : 0;
 
-        // Capturar estado ANTES del punto (para el historial visual)
-        const puntosAntes = this.getDisplayPoints();
-        const setsAntes = [[...this.sets[0]], [...this.sets[1]]];
-        const setActualAntes = this.currentSet;
-        const modeAntes = this.mode;
-
         this.motivoDescanso = '';
         this.message = this.mode === 'TIE-BREAK' ? 'TIE-BREAK' : 'EN JUEGO';
 
@@ -136,18 +127,6 @@ class PadelScoreEngine {
         } else {
             this._scoreTieBreak(eq);
         }
-
-        // Guardar en historial de puntos
-        this.pointHistory.unshift({
-            team,
-            pointsBefore: puntosAntes,
-            setsBefore: setsAntes,
-            setBefore: setActualAntes,
-            modeBefore: modeAntes,
-            timestamp: Date.now(),
-        });
-        if (this.pointHistory.length > 50) this.pointHistory.pop();
-
         return true;
     }
 
