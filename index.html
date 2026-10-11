@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>PadelScore Pro</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ccff00">
+    <link rel="stylesheet" href="css/base.css">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: radial-gradient(circle at center, #1a1a1a 0%, #000 100%);
+        }
+        .menu {
+            text-align: center;
+            max-width: 500px;
+            padding: 40px;
+        }
+        h1 {
+            font-size: 48px;
+            color: var(--neon);
+            letter-spacing: 4px;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+        }
+        p.subtitle {
+            color: #777;
+            margin-bottom: 50px;
+            letter-spacing: 2px;
+        }
+        .menu-btn {
+            display: block;
+            width: 100%;
+            padding: 25px;
+            margin-bottom: 15px;
+            background: linear-gradient(to bottom, #d4af37, var(--gold));
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 900;
+            color: #000;
+            text-decoration: none;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 0 var(--gold-dark);
+        }
+        .menu-btn.secundario {
+            background: #1e1e1e;
+            color: var(--neon);
+            border: 2px solid var(--neon);
+            box-shadow: 0 4px 0 #333;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu">
+        <h1>PadelScore</h1>
+        <p class="subtitle">PRO v2.8</p>
+
+        <a href="control.html" class="menu-btn">🎾 Control del Juez</a>
+        <a href="tablero.html" class="menu-btn secundario">📺 Tablero Público</a>
+    </div>
+
+    <!-- REGISTRO DE SERVICE WORKER (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('SW registrado:', reg.scope))
+                    .catch((err) => console.log('SW error:', err));
+            });
+        }
+    </script>
+</body>
+</html>

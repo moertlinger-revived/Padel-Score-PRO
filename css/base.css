@@ -1,0 +1,34 @@
+:root {
+    --neon: #ccff00;
+    --gold: #c6a052;
+    --gold-dark: #8a6d29;
+    --dark: #0a0a0a;
+    --dark-2: #151515;
+    --dark-3: #1e1e1e;
+    --border: #222;
+    --text: #ddd;
+    --text-dim: #777;
+    --danger: #ff5555;
+    --danger-dark: #440000;
+}
+
+* { box-sizing: border-box; touch-action: manipulation; }
+
+body {
+    margin: 0;
+    font-family: 'Segoe UI', Roboto, sans-serif;
+    background: var(--dark);
+    color: #fff;
+    overflow-x: hidden;
+}
+
+[x-cloak] { display: none !important; }
+
+button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s;
+}
+
+button:active { transform: scale(0.97); }

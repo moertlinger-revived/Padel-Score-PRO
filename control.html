@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Control Juez — PadelScore Pro</title>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#ccff00">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.9/dist/cdn.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="js/firebase-config.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/store.js"></script>
+    <link rel="stylesheet" href="css/base.css">
+    <link rel="stylesheet" href="css/control.css">
+</head>
+<body x-data="controlApp()">
+
+    <div class="version-tag">PadelScore Pro v2.8 — Control</div>
+
+    <!-- AVISO: ELIGE SACADOR -->
+    <div class="aviso-saque" x-show="$store.match.engine.servingPlayer === null && !$store.match.engine.matchOver && !$store.match.engine.runDescanso">
+        <span>⚠️ ELIGE QUIÉN SACA PARA EMPEZAR EL SET</span>
+    </div>
+
+    <!-- INDICADOR DE ESTADO -->
+    <div class="estado-partido" 
+         :class="{ pausado: !$store.match.engine.runP && !$store.match.engine.matchOver && !$store.match.engine.runDescanso }"
+         x-show="!$store.match.engine.runDescanso">
+        <span x-text="$store.match.engine.matchOver 
+            ? '🏁 PARTIDO FINALIZADO'
+            : (!$store.match.engine.runP 
+                ? '⏸ PARTIDO PAUSADO' 
+                : '▶ EN JUEGO')"></span>
+        <span class="estado-hora" x-text="'🕐 ' + $store.match.currentTime"></span>
+    </div>
+
+    <!-- ENCABEZADO: REGLAS -->
+    <div class="header-controls">
+        <button class="config-btn"
+                :class="{ activo: $store.match.engine.options.tieBreakAt === 5 }"
+                @click="$store.match.setRule('tieBreakAt', $store.match.engine.options.tieBreakAt === 5 ? 6 : 5)">
+            TB: <span x-text="$store.match.engine.options.tieBreakAt"></span>-<span x-text="$store.match.engine.options.tieBreakAt"></span>
+        </button>
+
+        <button class="config-btn"
+                :class="{ activo: $store.match.engine.options.superTieBreak > 0 }"
+                @click="$store.match.cicloSTB()">
+            3er SET: <span x-text="$store.match.engine.options.superTieBreak === 0 ? 'NORMAL' : 'STB(' + $store.match.engine.options.superTieBreak + ')'"></span>
+        </button>
+
+        <button class="config-btn"
+                :class="{ activo: $store.match.engine.options.goldenPoint }"
+                @click="$store.match.setRule('goldenPoint', !$store.match.engine.options.goldenPoint)">
+            ORO: <span x-text="$store.match.engine.options.goldenPoint ? 'SÍ' : 'NO'"></span>
+        </button>
+
+        <button class="config-btn undo-btn" @click="$store.match.undo()"
+                x-text="'↩ CORREGIR (' + $store.match.engine.history.length + ')'"></button>
+
+        <button class="config-btn reset-btn" @click="$store.match.reset()">⚠️ RESET</button>
+    </div>
+
+    <!-- CONTROLES DE TIEMPO -->
+    <div class="timer-controls">
+        <div class="timer-group">
+            <span class="timer-label-c">CALENTAMIENTO</span>
+            <span class="timer-value-c" x-text="$store.match.formatShortTime($store.match.engine.segPel)"></span>
+            <div class="timer-buttons">
+                <button @click="$store.match.toggleTimer('peloteo')"
+                        x-text="$store.match.engine.runPel ? 'PAUSE' : 'PLAY'"></button>
+                <button @click="$store.match.resetTimer('peloteo')">RESET</button>
+                <button @click="$store.match.toggleVisPeloteo()"
+                        x-text="$store.match.engine.visPel ? '👁️' : '🚫'"></button>
+            </div>
+        </div>
+
+        <div class="timer-group">
+            <span class="timer-label-c">PARTIDO</span>
+            <span class="timer-value-c" x-text="$store.match.formatTime($store.match.engine.segP)"></span>
+            <div class="timer-buttons">
+                <button @click="$store.match.toggleTimer('partido')"
+                        x-text="$store.match.engine.runP ? 'PAUSE' : 'PLAY'"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MARCADOR DE PUNTOS -->
+    <div class="score-panel">
+        <div class="team-panel" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'A' }">
+            <div class="player-row">
+                <span class="player-name" @click="editName('A', 0)" x-text="$store.match.names.A[0]"></span>
+                <button class="serve-btn"
+                        :class="{ activo: $store.match.engine.servingPlayer === 0 }"
+                        @click="$store.match.setFirstServer(0)">SAQUE</button>
+            </div>
+            <div class="player-row">
+                <span class="player-name" @click="editName('A', 1)" x-text="$store.match.names.A[1]"></span>
+                <button class="serve-btn"
+                        :class="{ activo: $store.match.engine.servingPlayer === 1 }"
+                        @click="$store.match.setFirstServer(1)">SAQUE</button>
+            </div>
+            <div class="points-display"
+                 :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
+                 x-text="$store.match.engine.getDisplayPoints().A"></div>
+            <button class="point-btn" @click="$store.match.addPoint('A')">+ EQUIPO 1</button>
+        </div>
+
+        <div class="team-panel" :class="{ 'sirviendo': $store.match.engine.servingTeam === 'B' }">
+            <div class="player-row">
+                <span class="player-name" @click="editName('B', 2)" x-text="$store.match.names.B[0]"></span>
+                <button class="serve-btn"
+                        :class="{ activo: $store.match.engine.servingPlayer === 2 }"
+                        @click="$store.match.setFirstServer(2)">SAQUE</button>
+            </div>
+            <div class="player-row">
+                <span class="player-name" @click="editName('B', 3)" x-text="$store.match.names.B[1]"></span>
+                <button class="serve-btn"
+                        :class="{ activo: $store.match.engine.servingPlayer === 3 }"
+                        @click="$store.match.setFirstServer(3)">SAQUE</button>
+            </div>
+            <div class="points-display"
+                 :class="{ 'modo-tb': $store.match.engine.mode === 'TIE-BREAK' }"
+                 x-text="$store.match.engine.getDisplayPoints().B"></div>
+            <button class="point-btn" @click="$store.match.addPoint('B')">+ EQUIPO 2</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE EDICIÓN DE NOMBRES -->
+    <div x-show="modalOpen" x-cloak x-transition class="modal-overlay" @click.self="modalOpen = false">
+        <div class="modal-box">
+            <h3>Editar nombre</h3>
+            <div class="modal-subtitle" x-text="modalLabel"></div>
+            <input type="text"
+                   x-model="modalValue"
+                   @keyup.enter="saveName()"
+                   @keyup.escape="modalOpen = false"
+                   x-ref="nameInput"
+                   maxlength="14"
+                   autocomplete="off">
+            <div class="modal-actions">
+                <button @click="modalOpen = false">Cancelar</button>
+                <button @click="saveName()">Guardar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARTEL DE DESCANSO -->
+    <div class="cartel-descanso"
+         x-show="$store.match.engine.runDescanso"
+         x-transition
+         @click="$store.match.aceptarDescanso()">
+        <div class="cartel-motivo" x-text="$store.match.engine.motivoDescanso"></div>
+        <div class="cartel-reloj" x-text="$store.match.engine.segDescanso + 's'"></div>
+        <div class="cartel-hint">TOCA PARA CONTINUAR</div>
+    </div>
+
+    <script>
+        function controlApp() {
+            return {
+                modalOpen: false,
+                modalTeam: 'A',
+                modalIdx: 0,
+                modalValue: '',
+                modalLabel: '',
+
+                editName(team, idx) {
+                    this.modalTeam = team;
+                    this.modalIdx = idx;
+                    const idxInArray = team === 'A' ? (idx === 0 ? 0 : 1) : (idx === 2 ? 0 : 1);
+                    this.modalValue = Alpine.store('match').names[team][idxInArray];
+                    this.modalLabel = `Equipo ${team === 'A' ? '1' : '2'} — Jugador ${idx % 2 === 0 ? 'A' : 'B'}`;
+                    this.modalOpen = true;
+                    this.$nextTick(() => {
+                        this.$refs.nameInput.focus();
+                        this.$refs.nameInput.select();
+                    });
+                },
+
+                saveName() {
+                    const name = this.modalValue.trim().toUpperCase();
+                    if (!name) { this.modalOpen = false; return; }
+                    const idxInArray = this.modalTeam === 'A'
+                        ? (this.modalIdx === 0 ? 0 : 1)
+                        : (this.modalIdx === 2 ? 0 : 1);
+                    Alpine.store('match').setName(this.modalTeam, idxInArray, name);
+                    this.modalOpen = false;
+                }
+            };
+        }
+    </script>
+
+    <!-- REGISTRO DE SERVICE WORKER (PWA) -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then((reg) => console.log('SW registrado:', reg.scope))
+                    .catch((err) => console.log('SW error:', err));
+            });
+        }
+    </script>
+</body>
+</html>
