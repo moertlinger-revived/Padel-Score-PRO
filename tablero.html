@@ -115,20 +115,6 @@
                 <span x-text="'SUPER TIE-BREAK A ' + $store.match.engine.options.superTieBreak"></span>
             </div>
         </div>
-
-        <!-- HISTORIAL DE PUNTOS -->
-        <div class="board-history" x-show="$store.match.pointHistory.length > 0">
-            <div class="history-title">ÚLTIMOS PUNTOS</div>
-            <div class="history-list">
-                <template x-for="(item, idx) in $store.match.pointHistory.slice(0, 10)" :key="idx">
-                    <div class="history-item" :class="{ 'team-a': item.team === 'A', 'team-b': item.team === 'B' }">
-                        <span class="history-team" x-text="item.team === 'A' ? 'Eq. 1' : 'Eq. 2'"></span>
-                        <span class="history-score" x-text="item.pointsBefore.A + ' - ' + item.pointsBefore.B"></span>
-                        <span class="history-set" x-text="'S' + (item.setBefore + 1)"></span>
-                    </div>
-                </template>
-            </div>
-        </div>
     </main>
 
     <!-- CARTEL DE DESCANSO EN TABLERO -->
