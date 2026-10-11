@@ -1,6 +1,6 @@
 /**
  * store.js — Puente entre el motor y la UI, y sincronización con Firebase
- * v2.9 — Con temporizadores, clima, descansos, mensaje dinámico, reloj y torneo
+ * v3.0 — Con temporizadores, clima, descansos, mensaje dinámico, reloj, torneo y pantalla oculta
  */
 document.addEventListener('alpine:init', () => {
     Alpine.store('match', {
@@ -16,6 +16,10 @@ document.addEventListener('alpine:init', () => {
         // Torneo
         torneo: '',
         categoria: '',
+
+        // Pantalla oculta
+        pantallaOculta: false,
+        mensajePantalla: '',
 
         init() {
             this.isBoard = window.location.pathname.includes('tablero');
@@ -107,6 +111,35 @@ document.addEventListener('alpine:init', () => {
             localStorage.setItem('padel_torneo', JSON.stringify({
                 nombre: this.torneo,
                 categoria: this.categoria,
+            }));
+        },
+
+        /* ============================================================
+           PANTALLA OCULTA
+           ============================================================ */
+        setMensajePantalla(texto) {
+            this.mensajePantalla = texto || '';
+            this.pantallaOculta = this.mensajePantalla.trim() !== '';
+            db.ref('marcador/pantalla').set({
+                oculta: this.pantallaOculta,
+                mensaje: this.mensajePantalla,
+            });
+            localStorage.setItem('padel_pantalla', JSON.stringify({
+                oculta: this.pantallaOculta,
+                mensaje: this.mensajePantalla,
+            }));
+        },
+
+        mostrarTablero() {
+            this.pantallaOculta = false;
+            this.mensajePantalla = '';
+            db.ref('marcador/pantalla').set({
+                oculta: false,
+                mensaje: '',
+            });
+            localStorage.setItem('padel_pantalla', JSON.stringify({
+                oculta: false,
+                mensaje: '',
             }));
         },
 
@@ -273,6 +306,16 @@ document.addEventListener('alpine:init', () => {
                 } catch (e) { /* ignore */ }
             }
 
+            // Cargar pantalla de localStorage mientras llega Firebase
+            const localPantalla = localStorage.getItem('padel_pantalla');
+            if (localPantalla) {
+                try {
+                    const p = JSON.parse(localPantalla);
+                    this.pantallaOculta = !!p.oculta;
+                    this.mensajePantalla = p.mensaje || '';
+                } catch (e) { /* ignore */ }
+            }
+
             db.ref('marcador').on('value', (snap) => {
                 const data = snap.val();
                 if (!data || this.syncing) return;
@@ -284,21 +327,21 @@ document.addEventListener('alpine:init', () => {
                 }
             });
 
-            // Escuchar cambios del torneo
+            // Listener del torneo
             db.ref('marcador/torneo').on('value', (snap) => {
                 const data = snap.val();
                 if (data) {
                     this.torneo = data.nombre || '';
                     this.categoria = data.categoria || '';
-                } else {
-                    const local = localStorage.getItem('padel_torneo');
-                    if (local) {
-                        try {
-                            const t = JSON.parse(local);
-                            this.torneo = t.nombre || '';
-                            this.categoria = t.categoria || '';
-                        } catch (e) { /* ignore */ }
-                    }
+                }
+            });
+
+            // Listener de pantalla oculta
+            db.ref('marcador/pantalla').on('value', (snap) => {
+                const data = snap.val();
+                if (data) {
+                    this.pantallaOculta = !!data.oculta;
+                    this.mensajePantalla = data.mensaje || '';
                 }
             });
         },
